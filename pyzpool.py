@@ -1,4 +1,5 @@
 import subprocess
+import json
 
 class Zpool(object):
 	"""docstring for Zpool"""
@@ -45,8 +46,8 @@ class Zpool(object):
 
 	def list(self):
 		self.__get_pools()
-		return self.pools_json["pools"]
+		return json.dumps(self.pools_json["pools"])
 
 	def events(self):
 		self.__get_events()
-		return self.events_json
+		return json.dumps(self.events_json)
