@@ -115,32 +115,3 @@ class Zpool(object):
     def status(self):
         self.__get_status()
         return self.status_json
-
-if __name__ == "__main__":
-    z = Zpool()
-    z.status()
-    pprint.pprint(z.status_json)
-
-# Status structure
-# {
-#     "pools": {
-#         "ZSTOR": {
-#             "state": "online",
-#             "scan": "PLACEHOLDER DATE",
-#             "errors": "0",
-#             "config": {
-#                 "mirror-0": {
-#                     "devs": [{
-#                         "name": "scsi-35000cca2530a2c38",
-#                         "state": "ONLINE",
-#                         "errors": {
-#                             "READ": "0",
-#                             "WRITE": "0",
-#                             "CKSUM": "0"
-#                         }
-#                     }]
-#                 }
-#             }
-#         }
-#     }
-# }
