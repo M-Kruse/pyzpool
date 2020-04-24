@@ -18,6 +18,24 @@
 {'timestamp': 'Apr 23 2020 13:49:04.506000729', 'event_class': 'sysevent.fs.zfs.history_event'}
 >>> json.loads(z.events())['events'][1]
 {'timestamp': 'Apr 23 2020 13:49:04.793000752', 'event_class': 'sysevent.fs.zfs.config_sync'}
+>>> z.status()
+{'status': {'ZSTOR': {'pool': 'ZSTOR', 'state': 'ONLINE', 'scan': 'resilvered 51.3M in 0h0m with 0 errors on Tue May 21 00:12:13 2019', 'errors': 'No known data errors', 'config': {'mirror-0': {'devs': [{'name': 'scsi-35000cca2530a2c38', 'state': 'ONLINE', 'errors': {'READ': '0', 'WRITE': '0', 'CKSUM': '0'}}, {'name': 'scsi-35000cca2530a2598', 'state': 'ONLINE', 'errors': {'READ': '0', 'WRITE': '0', 'CKSUM': '0'}}]}}}}}
+>>> from pprint import pprint
+>>> pprint(z.status())
+{'status': {'ZSTOR': {'config': {'mirror-0': {'devs': [{'errors': {'CKSUM': '0',
+                                                                   'READ': '0',
+                                                                   'WRITE': '0'},
+                                                        'name': 'scsi-35000cca2530a2c38',
+                                                        'state': 'ONLINE'},
+                                                       {'errors': {'CKSUM': '0',
+                                                                   'READ': '0',
+                                                                   'WRITE': '0'},
+                                                        'name': 'scsi-35000cca2530a2598',
+                                                        'state': 'ONLINE'}]}},
+                      'errors': 'No known data errors',
+                      'pool': 'ZSTOR',
+                      'scan': 'resilvered 51.3M in 0h0m with 0 errors on Tue '
+                              'May 21 00:12:13 2019',
+                      'state': 'ONLINE'}}}
 >>> 
-
 ```
