@@ -37,5 +37,11 @@
                       'scan': 'resilvered 51.3M in 0h0m with 0 errors on Tue '
                               'May 21 00:12:13 2019',
                       'state': 'ONLINE'}}}
+>>>
+>>> for dev in json.loads(z.status())['status']['ZSTOR']['config']['mirror-0']['devs']:
+...  print(dev['name'])
+... 
+scsi-35000cca2530a2c38
+scsi-35000cca2530a2598
 >>> 
 ```
