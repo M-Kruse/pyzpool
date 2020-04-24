@@ -114,4 +114,4 @@ class Zpool(object):
 
     def status(self):
         self.__get_status()
-        return self.status_json
+        return json.dumps(self.status_json)
