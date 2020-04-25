@@ -8,11 +8,13 @@ class Zpool(object):
     """docstring for Zpool"""
     def __init__(self):
         super(Zpool, self).__init__()
+        ## Add some sanity check to make sure zpool binary exists
+        #Init our json objects 
         self.pools_json = { "pools": {} }
         self.status_json = { "pools": {} }
         self.events_json = { "events": [] }
         self.history_json = { "history": [] }
-        self.status_json = {"status": {} }
+        self.status_json = {"pools": {} }
 
     def __run_cmd(self, cmd_list):
         process = subprocess.Popen(cmd_list,
@@ -74,7 +76,7 @@ class Zpool(object):
         stdout, stderr = self.__run_cmd(['zpool', 'status'])
         ##Add error handling
         output = stdout.decode('utf-8').strip()
-        #The only multiline data item in this output is the config which shows the vdev data in a heirachal format
+        #The only multiline data item in this output is the config which shows the vdev data in a hierarchical format
         config = output[output.find("config:")+len("config:"):output.rfind("errors:")]
         #Parse out the other values, skipping the config we just extracted and remove the dangling 'config:' entry since that is stored separately 
         values = [item.strip() for item in output.split("\n") if item not in config and 'config:' not in item]
@@ -87,6 +89,8 @@ class Zpool(object):
             else:
                 self.status_json["status"][pool_name] = {value.split(": ")[0]:value.split(": ")[1]}
         for line in config.split("\n"):
+            #The only way i can figure to dynamically handle the vdev hierarchical is by the indent/whitespace count since that seems to be consistent
+            #The vdevs have 3 and dev members of the vdevs have 5
             lead_spaces = sum( 1 for _ in itertools.takewhile(str.isspace,line))
             if lead_spaces == 3:
                 vdev = line.strip().split(" ")[0]
@@ -94,11 +98,48 @@ class Zpool(object):
             if lead_spaces == 5:
                 dev = line.split(" ")
                 dev = [item for item in dev if item.strip()]
+                #Check if vdev already exists in the json object, if so append otherwise create new list object that you can append any additional drives to
                 if self.status_json["status"][pool_name]["config"][vdev].get("devs"):
                     self.status_json["status"][pool_name]["config"][vdev]["devs"].append({"name":dev[0],"state":dev[1], "errors":{"READ":dev[2],"WRITE":dev[3],"CKSUM":dev[4]}})
                 else:
                     self.status_json["status"][pool_name]["config"][vdev]["devs"] = [{"name":dev[0],"state":dev[1], "errors":{"READ":dev[2],"WRITE":dev[3],"CKSUM":dev[4]}}]
-        
+    
+    def __get_iostat(self, pool, rate):
+        self.iostat_json = {"pools": {} }
+        count = 1
+        if rate < 0:
+            rate = 1
+        if pool:
+            cmd = ['zpool', 'iostat', "-y", "-H", pool, str(rate), str(count)]
+        else:
+            cmd = ['zpool', 'iostat', "-y", "-H", str(rate), str(count)]
+        stdout, stderr = self.__run_cmd(cmd)
+        ##Add error handling
+        output = stdout.decode('utf-8').strip()
+        output = output.split("\t")
+        #We are basically just caching the latest iostat output, over the last second of time, and caching it our class.
+        #Workers can do whatever they want with it from there.
+        self.iostat_json["pools"][output[0]] = {
+            "capacity": {
+                "alloc":output[1],
+                "free":output[2]},
+                "operations": {
+                    "read":output[3],
+                    "write":output[4]
+                },
+                    "bandwidth": {
+                            "read":output[5],
+                            "write":output[6]
+                    }
+            }
+
+    def __handle_prop(self, method, zpool, property):
+        assert property
+        stdout, stderr = self.__run_cmd(['zpool', method, property, '-H'])
+        ##Add error handling
+        output = stdout.decode('utf-8').strip()
+        values = output.split("\t")
+        self.property_json["property"][property] = { "name":values[0], "property":values[1], "value":values[2], "source": values[3] }
 
     def list(self):
         self.__get_pools()
@@ -115,3 +156,19 @@ class Zpool(object):
     def status(self):
         self.__get_status()
         return json.dumps(self.status_json)
+
+    def iostat(self, pool_name=None, query_rate=1):
+        self.__get_iostat(pool_name, query_rate)
+        return self.iostat_json
+
+    def property(self, pool_name, prop_name, method='get'):
+        self.property_json = {"property": {} }
+        if method not in ['get']:
+            raise Exception("[ERROR] Can only parse 'set' or 'get' for property handler method")
+        else:
+            self.__handle_prop(method, pool_name, prop_name)
+            return self.property_json
+
+if __name__ == "__main__":
+    z = Zpool()
+    print(z.iostat("ZSTOR"))
